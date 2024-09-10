@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ad;
+use App\Models\donation;
+use App\Models\donations_type;
 use App\Models\family;
 use Illuminate\Http\Request;
 use App\Models\User;
@@ -178,4 +180,164 @@ class UserController extends Controller
         ], 200);
     }
 
+    public function addDonationType(Request $request)
+    {
+        $validatedData = $request->validate([
+            'name' => 'required',
+        ]);
+
+        donations_type::create($validatedData);
+        $types = donations_type::get();
+
+        return response([
+            'status' => true,
+            'message' => 'done Successfully',
+            'types' => $types
+        ]);
+    }
+
+    public function showDonationsTypes()
+    {
+        $types = donations_type::get();
+
+        return response([
+            'status' => true,
+            'types' => $types
+        ]);
+    }
+
+    public function deleteDonationType($id)
+    {
+        if (!(donations_type::where('id', $id)->exists())) {
+            return response([
+                'status' => false,
+                'message' => 'not found, wrong id'
+            ], 200);
+        }
+
+        donations_type::where('id', $id)->delete();
+        $data = donations_type::get();
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'ads' => $data,
+        ], 200);
+    }
+
+    public function addDonation(Request $request)
+    {
+        $validatedData = $request->validate([
+            'user_id' => 'required',
+            'donation_type_id' => 'required',
+            'amount' => 'required',
+            'date' => 'required',
+        ]);
+
+        if (!(User::where('id', $request->user_id)->exists())) {
+            return response([
+                'status' => false,
+                'message' => 'user not found, wrong id'
+            ], 200);
+        }
+
+        if (!(donations_type::where('id', $request->donation_type_id)->exists())) {
+            return response([
+                'status' => false,
+                'message' => 'type not found, wrong id'
+            ], 200);
+        }
+
+        $user = User::find($request->user_id);
+        if ($user->badget < $request->amount) {
+            return response([
+                'status' => true,
+                'message' => "your badget is not enough",
+            ], 200);
+        }
+
+        donation::create($validatedData);
+        $data = donation::join('users as u', 'u.id', 'donations.user_id')
+            ->join('donations_types as t', 't.id', 'donations.donation_type_id')
+            ->leftjoin('families as f', 'f.id', 'u.family_id')
+            ->get([
+                'donations.id',
+                'u.id as user_id',
+                'u.name as user_name',
+                'u.email',
+                'u.phone_no',
+                'u.family_id',
+                'f.name as family',
+                'donation_type_id',
+                't.name as type',
+                'amount',
+                'date'
+            ]);
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'data' => $data,
+        ], 200);
+    }
+
+    public function showDonations()
+    {
+        $data = donation::join('users as u', 'u.id', 'donations.user_id')
+            ->join('donations_types as t', 't.id', 'donations.donation_type_id')
+            ->leftjoin('families as f', 'f.id', 'u.family_id')
+            ->get([
+                'donations.id',
+                'u.id as user_id',
+                'u.name as user_name',
+                'u.email',
+                'u.phone_no',
+                'u.family_id',
+                'f.name as family',
+                'donation_type_id',
+                't.name as type',
+                'amount',
+                'date'
+            ]);
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'data' => $data,
+        ], 200);
+    }
+
+    public function deleteDonation($id)
+    {
+        if (!(donation::where('id', $id)->exists())) {
+            return response([
+                'status' => false,
+                'message' => 'not found, wrong id'
+            ], 200);
+        }
+
+        donation::where('id', $id)->delete();
+        $data = donation::join('users as u', 'u.id', 'donations.user_id')
+            ->join('donations_types as t', 't.id', 'donations.donation_type_id')
+            ->leftjoin('families as f', 'f.id', 'u.family_id')
+            ->get([
+                'donations.id',
+                'u.id as user_id',
+                'u.name as user_name',
+                'u.email',
+                'u.phone_no',
+                'u.family_id',
+                'f.name as family',
+                'donation_type_id',
+                't.name as type',
+                'amount',
+                'date'
+            ]);
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'data' => $data,
+        ], 200);
+    }
 }
