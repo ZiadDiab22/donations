@@ -12,10 +12,11 @@ Route::get("showDonationsTypes", [UserController::class, "showDonationsTypes"]);
 Route::group(["middleware" => ["auth:api"]], function () {
     Route::post("register", [UserController::class, "register"])->middleware('checkAdminId');
     Route::post("addAd", [UserController::class, "addAd"])->middleware('checkAdminId');
+    Route::get("showAds", [UserController::class, "showAds"]);
+    Route::get("deleteAd/{id}", [UserController::class, "deleteAd"])->middleware('checkAdminId');
     Route::post("addFamily", [UserController::class, "addFamily"])->middleware('checkAdminId');
     Route::post("addCash", [UserController::class, "addCash"])->middleware('checkAdminId');
     Route::get("deleteAcc/{id}", [UserController::class, "deleteAcc"])->middleware('checkAdminId');
-    Route::get("deleteAd/{id}", [UserController::class, "deleteAd"])->middleware('checkAdminId');
     Route::post("addDonationType", [UserController::class, "addDonationType"])->middleware('checkAdminId');
     Route::get("deleteDonationType/{id}", [UserController::class, "deleteDonationType"])->middleware('checkAdminId');
     Route::post("addDonation", [UserController::class, "addDonation"])->middleware('checkAdminId');

@@ -116,7 +116,7 @@ class UserController extends Controller
         return response([
             'status' => true,
             'message' => "done successfully",
-            'ads' => $var,
+            'Families' => $var,
         ], 200);
     }
 
@@ -157,7 +157,7 @@ class UserController extends Controller
         return response([
             'status' => true,
             'message' => "done successfully",
-            'ads' => $users,
+            'users' => $users,
         ], 200);
     }
 
@@ -171,6 +171,17 @@ class UserController extends Controller
         }
 
         ad::where('id', $id)->delete();
+        $ads = ad::get();
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'ads' => $ads,
+        ], 200);
+    }
+
+    public function showAds()
+    {
         $ads = ad::get();
 
         return response([
@@ -277,7 +288,7 @@ class UserController extends Controller
         return response([
             'status' => true,
             'message' => "done successfully",
-            'data' => $data,
+            'donations' => $data,
         ], 200);
     }
 
@@ -303,7 +314,7 @@ class UserController extends Controller
         return response([
             'status' => true,
             'message' => "done successfully",
-            'data' => $data,
+            'donations' => $data,
         ], 200);
     }
 
@@ -337,7 +348,7 @@ class UserController extends Controller
         return response([
             'status' => true,
             'message' => "done successfully",
-            'data' => $data,
+            'donations' => $data,
         ], 200);
     }
 }
