@@ -16,6 +16,7 @@ return new class extends Migration
             $table->unsignedInteger('user_id');
             $table->unsignedInteger('donation_type_id');
             $table->float('amount');
+            $table->boolean('paid')->default(0);
             $table->date('date');
             $table->foreign('donation_type_id')->references('id')
                 ->on('donations_types')->onDelete('cascade');

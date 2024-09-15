@@ -15,6 +15,8 @@ Route::group(["middleware" => ["auth:api"]], function () {
     Route::get("showAds", [UserController::class, "showAds"]);
     Route::get("deleteAd/{id}", [UserController::class, "deleteAd"])->middleware('checkAdminId');
     Route::post("addFamily", [UserController::class, "addFamily"])->middleware('checkAdminId');
+    Route::get("deleteFamily/{id}", [UserController::class, "deleteFamily"])->middleware('checkAdminId');
+    Route::get("showFamilies", [UserController::class, "showFamilies"])->middleware('checkAdminId');
     Route::post("addCash", [UserController::class, "addCash"])->middleware('checkAdminId');
     Route::get("deleteAcc/{id}", [UserController::class, "deleteAcc"])->middleware('checkAdminId');
     Route::post("addDonationType", [UserController::class, "addDonationType"])->middleware('checkAdminId');
@@ -22,6 +24,9 @@ Route::group(["middleware" => ["auth:api"]], function () {
     Route::post("addDonation", [UserController::class, "addDonation"])->middleware('checkAdminId');
     Route::get("showDonations", [UserController::class, "showDonations"])->middleware('checkAdminId');
     Route::get("deleteDonation/{id}", [UserController::class, "deleteDonation"])->middleware('checkAdminId');
+    Route::post("addEvent", [UserController::class, "addEvent"])->middleware('checkAdminId');
+    Route::get("deleteEvent/{id}", [UserController::class, "deleteEvent"])->middleware('checkAdminId');
+    Route::get("showEvents", [UserController::class, "showEvents"]);
 });
 
 Route::get('Ads/{filename}', function ($filename) {
@@ -34,6 +39,14 @@ Route::get('Ads/{filename}', function ($filename) {
 
 Route::get('Families/{filename}', function ($filename) {
     $path = base_path('public_html/Families/' . $filename);
+    if (!File::exists($path)) {
+        abort(404, 'File not found');
+    }
+    return response()->file($path);;
+});
+
+Route::get('Events/{filename}', function ($filename) {
+    $path = base_path('public_html/Events/' . $filename);
     if (!File::exists($path)) {
         abort(404, 'File not found');
     }

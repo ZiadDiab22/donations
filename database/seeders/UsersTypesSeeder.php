@@ -22,7 +22,7 @@ class UsersTypesSeeder extends Seeder
             "name" => "admin",
         ]);
         users_type::create([
-            "name" => "normal",
+            "name" => "user",
         ]);
     }
 }

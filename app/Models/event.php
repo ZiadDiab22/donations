@@ -8,4 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class event extends Model
 {
     use HasFactory;
+    public $timestamps = false;
+
+    protected $fillable = [
+        'img_url','name','date'
+    ];
 }

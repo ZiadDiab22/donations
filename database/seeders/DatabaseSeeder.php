@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             UsersTypesSeeder::class,
             DonationsTypesSeeder::class,
             UsersSeeder::class,
+            familiesSeeder::class,
         ]);
     }
 }

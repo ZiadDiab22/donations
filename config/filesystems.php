@@ -58,6 +58,13 @@ return [
             'visibility' => 'public',
         ],
 
+        'public_htmlEvents' => [
+            'driver' => 'local',
+            'root' => base_path('public_html/Events'), // Path outside public directory
+            'url' => env('APP_URL') . '/public_html/Events',
+            'visibility' => 'public',
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

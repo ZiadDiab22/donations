@@ -7,6 +7,7 @@ use App\Models\Ad;
 use App\Models\donation;
 use App\Models\donations_type;
 use App\Models\family;
+use App\Models\event;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -91,7 +92,7 @@ class UserController extends Controller
         return response([
             'status' => true,
             'message' => "done successfully",
-            'data' => $var,
+            'ads' => $var,
             'image_path' => $image1,
         ], 200);
     }
@@ -349,6 +350,92 @@ class UserController extends Controller
             'status' => true,
             'message' => "done successfully",
             'donations' => $data,
+        ], 200);
+    }
+
+    public function deleteFamily($id)
+    {
+        if (!(family::where('id', $id)->exists())) {
+            return response([
+                'status' => false,
+                'message' => 'not found, wrong id'
+            ], 200);
+        }
+
+        family::where('id', $id)->delete();
+        $data = family::get();
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'families' => $data,
+        ], 200);
+    }
+
+    public function showFamilies()
+    {
+        $data = family::get();
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'families' => $data,
+        ], 200);
+    }
+
+    public function addEvent(Request $request)
+    {
+        $validatedData = $request->validate([
+            'img_url' => 'required|image|mimes:jpg,webp,png,jpeg,gif,svg|max:2048',
+            'name' => 'required',
+            'date' => 'required',
+        ]);
+
+        $image1 = Str::random(32) . "." . $request->img_url->getClientOriginalExtension();
+        Storage::disk('public_htmlEvents')->put($image1, file_get_contents($request->img_url));
+
+        $image1 = asset('api/Events/' . $image1);
+
+        $validatedData['img_url'] = $image1;
+
+        event::create($validatedData);
+        $var = event::get();
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'events' => $var,
+            'image_path' => $image1,
+        ], 200);
+    }
+
+    public function showEvents()
+    {
+        $var = event::get();
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'events' => $var
+        ], 200);
+    }
+
+    public function deleteEvent($id)
+    {
+        if (!(event::where('id', $id)->exists())) {
+            return response([
+                'status' => false,
+                'message' => 'not found, wrong id'
+            ], 200);
+        }
+
+        event::where('id', $id)->delete();
+        $events = event::get();
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'events' => $events,
         ], 200);
     }
 }

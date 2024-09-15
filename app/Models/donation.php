@@ -11,6 +11,6 @@ class donation extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'user_id','donation_type_id','amount','date'
+        'user_id','donation_type_id','amount','date','paid'
     ];
 }
