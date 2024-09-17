@@ -8,8 +8,10 @@ use App\Models\donation;
 use App\Models\donations_type;
 use App\Models\family;
 use App\Models\event;
+use App\Models\expenses;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\users_type;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -35,6 +37,13 @@ class UserController extends Controller
         }
 
         $validatedData['password'] = bcrypt($request->password);
+
+        if ($request->has('img_url')) {
+            $image1 = Str::random(32) . "." . $request->img_url->getClientOriginalExtension();
+            Storage::disk('public_htmlUsers')->put($image1, file_get_contents($request->img_url));
+            $image1 = asset('api/Users/' . $image1);
+            $validatedData['img_url'] = $image1;
+        }
 
         $user = User::create($validatedData);
 
@@ -295,7 +304,7 @@ class UserController extends Controller
 
     public function showDonations()
     {
-        $data = donation::join('users as u', 'u.id', 'donations.user_id')
+        $donations = donation::join('users as u', 'u.id', 'donations.user_id')
             ->join('donations_types as t', 't.id', 'donations.donation_type_id')
             ->leftjoin('families as f', 'f.id', 'u.family_id')
             ->get([
@@ -315,7 +324,7 @@ class UserController extends Controller
         return response([
             'status' => true,
             'message' => "done successfully",
-            'donations' => $data,
+            'donations' => $donations,
         ], 200);
     }
 
@@ -436,6 +445,342 @@ class UserController extends Controller
             'status' => true,
             'message' => "done successfully",
             'events' => $events,
+        ], 200);
+    }
+
+    public function editAcc(Request $request)
+    {
+        $request->validate([
+            'id' => 'required',
+            'email' => 'email',
+        ]);
+
+        if (!(User::where('id', $request->id)->exists())) {
+            return response()->json([
+                'status' => false,
+                'message' => "Wrong ID , user not exist"
+            ], 200);
+        }
+
+        if ($request->has('type_id')) {
+            if (!(users_type::where('id', $request->type_id)->exists())) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Wrong type ID"
+                ], 200);
+            }
+        }
+
+        if ($request->has('family_id')) {
+            if (!(family::where('id', $request->family_id)->exists())) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Wrong family ID"
+                ], 200);
+            }
+        }
+
+        $user = User::find($request->id);
+
+        $input = $request->all();
+
+        foreach ($input as $key => $value) {
+            if (in_array($key, ['name', 'type_id', 'family_id', 'email', 'phone_no'])) {
+                $user->$key = $value;
+            }
+        }
+
+        if ($request->has('img_url')) {
+            $image1 = Str::random(32) . "." . $request->img_url->getClientOriginalExtension();
+            Storage::disk('public_htmlUsers')->put($image1, file_get_contents($request->img_url));
+            $image1 = asset('api/Users/' . $image1);
+            $user->img_url = $image1;
+        }
+
+        if ($request->has('password')) {
+            $user->password = bcrypt($request->password);
+        }
+
+        $user->save();
+
+        $users = User::join('users_types as t', 'type_id', 't.id')
+            ->join('families as f', 'family_id', 'f.id')
+            ->get([
+                'users.id',
+                'users.name',
+                'type_id',
+                't.name as type',
+                'family_id',
+                'f.name as family',
+                'email',
+                'phone_no',
+                'badget',
+                'users.img_url',
+                'password as user_password',
+                'users.created_at',
+                'users.updated_at',
+            ]);
+
+        return response([
+            'status' => true,
+            'users' => $users,
+        ], 200);
+    }
+
+    public function editFamily(Request $request)
+    {
+        $request->validate([
+            'id' => 'required',
+        ]);
+
+        if (!(family::where('id', $request->id)->exists())) {
+            return response()->json([
+                'status' => false,
+                'message' => "Wrong ID , family not exist"
+            ], 200);
+        }
+
+        $family = family::find($request->id);
+
+        if ($request->has('img_url')) {
+            $image1 = Str::random(32) . "." . $request->img_url->getClientOriginalExtension();
+            Storage::disk('public_htmlFamilies')->put($image1, file_get_contents($request->img_url));
+            $image1 = asset('api/Families/' . $image1);
+            $family->img_url = $image1;
+        }
+
+        if ($request->has('name')) {
+            $family->name = $request->name;
+        }
+
+        $family->save();
+
+        $families = family::get();
+
+        return response([
+            'status' => true,
+            'families' => $families,
+        ], 200);
+    }
+
+    public function editDonationType(Request $request)
+    {
+        $request->validate([
+            'id' => 'required',
+            'name' => 'required',
+        ]);
+
+        if (!(donations_type::where('id', $request->id)->exists())) {
+            return response()->json([
+                'status' => false,
+                'message' => "Wrong ID , type not exist"
+            ], 200);
+        }
+
+        $type = donations_type::find($request->id);
+        $type->name = $request->name;
+        $type->save();
+
+        $types = donations_type::get();
+
+        return response([
+            'status' => true,
+            'families' => $types,
+        ], 200);
+    }
+
+    public function editDonation(Request $request)
+    {
+        $request->validate([
+            'id' => 'required',
+            'date' => 'date',
+        ]);
+
+        if (!(donation::where('id', $request->id)->exists())) {
+            return response()->json([
+                'status' => false,
+                'message' => "Wrong ID , donation not exist"
+            ], 200);
+        }
+
+        if ($request->has('user_id')) {
+            if (!(User::where('id', $request->user_id)->exists())) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Wrong user ID"
+                ], 200);
+            }
+        }
+
+        if ($request->has('donation_type_id')) {
+            if (!(donations_type::where('id', $request->donation_type_id)->exists())) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Wrong type ID"
+                ], 200);
+            }
+        }
+
+        $donation = donation::find($request->id);
+
+        $input = $request->all();
+
+        foreach ($input as $key => $value) {
+            if (in_array($key, ['donation_type_id', 'user_id', 'amount', 'date'])) {
+                $donation->$key = $value;
+            }
+        }
+
+        $donation->save();
+
+        $donations = donation::join('users as u', 'u.id', 'donations.user_id')
+            ->join('donations_types as t', 't.id', 'donations.donation_type_id')
+            ->leftjoin('families as f', 'f.id', 'u.family_id')
+            ->get([
+                'donations.id',
+                'u.id as user_id',
+                'u.name as user_name',
+                'u.email',
+                'u.phone_no',
+                'u.family_id',
+                'f.name as family',
+                'donation_type_id',
+                't.name as type',
+                'amount',
+                'date'
+            ]);
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'donations' => $donations,
+        ], 200);
+    }
+
+    public function addExpense(Request $request)
+    {
+        $validatedData = $request->validate([
+            'donation_type_id' => 'required',
+            'amount' => 'required',
+            'date' => 'date|required',
+        ]);
+
+        if (!(donations_type::where('id', $request->donation_type_id)->exists())) {
+            return response([
+                'status' => false,
+                'message' => 'type not found, wrong id'
+            ], 200);
+        }
+
+        expenses::create($validatedData);
+        $data = expenses::join('donations_types as t', 't.id', 'expenses.donation_type_id')
+            ->get([
+                'expenses.id',
+                'donation_type_id',
+                't.name as type',
+                'amount',
+                'date'
+            ]);
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'expenses' => $data,
+        ], 200);
+    }
+
+    public function showExpenses()
+    {
+        $data = expenses::join('donations_types as t', 't.id', 'expenses.donation_type_id')
+            ->get([
+                'expenses.id',
+                'donation_type_id',
+                't.name as type',
+                'amount',
+                'date'
+            ]);
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'expenses' => $data,
+        ], 200);
+    }
+
+    public function deleteExpense($id)
+    {
+        if (!(expenses::where('id', $id)->exists())) {
+            return response([
+                'status' => false,
+                'message' => 'not found, wrong id'
+            ], 200);
+        }
+
+        expenses::where('id', $id)->delete();
+        $data = expenses::join('donations_types as t', 't.id', 'expenses.donation_type_id')
+            ->get([
+                'expenses.id',
+                'donation_type_id',
+                't.name as type',
+                'amount',
+                'date'
+            ]);
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'expenses' => $data,
+        ], 200);
+    }
+
+    public function editExpense(Request $request)
+    {
+        $request->validate([
+            'id' => 'required',
+            'date' => 'date',
+        ]);
+
+        if (!(expenses::where('id', $request->id)->exists())) {
+            return response()->json([
+                'status' => false,
+                'message' => "Wrong ID , not exist"
+            ], 200);
+        }
+
+        if ($request->has('donation_type_id')) {
+            if (!(donations_type::where('id', $request->donation_type_id)->exists())) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Wrong type ID"
+                ], 200);
+            }
+        }
+
+        $expense = expenses::find($request->id);
+
+        $input = $request->all();
+
+        foreach ($input as $key => $value) {
+            if (in_array($key, ['donation_type_id', 'amount', 'date'])) {
+                $expense->$key = $value;
+            }
+        }
+
+        $expense->save();
+
+        $data = expenses::join('donations_types as t', 't.id', 'expenses.donation_type_id')
+            ->get([
+                'expenses.id',
+                'donation_type_id',
+                't.name as type',
+                'amount',
+                'date'
+            ]);
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'expenses' => $data,
         ], 200);
     }
 }

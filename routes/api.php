@@ -27,6 +27,14 @@ Route::group(["middleware" => ["auth:api"]], function () {
     Route::post("addEvent", [UserController::class, "addEvent"])->middleware('checkAdminId');
     Route::get("deleteEvent/{id}", [UserController::class, "deleteEvent"])->middleware('checkAdminId');
     Route::get("showEvents", [UserController::class, "showEvents"]);
+    Route::post("editAcc", [UserController::class, "editAcc"])->middleware('checkAdminId');
+    Route::post("editFamily", [UserController::class, "editFamily"])->middleware('checkAdminId');
+    Route::post("editDonationType", [UserController::class, "editDonationType"])->middleware('checkAdminId');
+    Route::post("editDonation", [UserController::class, "editDonation"])->middleware('checkAdminId');
+    Route::post("addExpense", [UserController::class, "addExpense"])->middleware('checkAdminId');
+    Route::get("showExpenses", [UserController::class, "showExpenses"])->middleware('checkAdminId');
+    Route::get("deleteExpense/{id}", [UserController::class, "deleteExpense"])->middleware('checkAdminId');
+    Route::post("editExpense", [UserController::class, "editExpense"])->middleware('checkAdminId');
 });
 
 Route::get('Ads/{filename}', function ($filename) {
