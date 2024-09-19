@@ -12,6 +12,9 @@ use App\Models\expenses;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\users_type;
+use App\Models\zaka;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -36,6 +39,13 @@ class UserController extends Controller
             ], 200);
         }
 
+        if (User::where('phone_no', $request->phone_no)->exists()) {
+            return response()->json([
+                'status' => false,
+                'message' => "phone_no is taken"
+            ], 200);
+        }
+
         $validatedData['password'] = bcrypt($request->password);
 
         if ($request->has('img_url')) {
@@ -43,6 +53,16 @@ class UserController extends Controller
             Storage::disk('public_htmlUsers')->put($image1, file_get_contents($request->img_url));
             $image1 = asset('api/Users/' . $image1);
             $validatedData['img_url'] = $image1;
+        }
+
+        if ($request->has('family_id')) {
+            if (!(family::where('id', $request->family_id)->exists())) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "wrong id , family not exist"
+                ], 200);
+            }
+            $validatedData['family_id'] = $request->family_id;
         }
 
         $user = User::create($validatedData);
@@ -782,5 +802,221 @@ class UserController extends Controller
             'message' => "done successfully",
             'expenses' => $data,
         ], 200);
+    }
+
+    public function home()
+    {
+        $ads = Ad::get();
+        $events = event::get();
+        $top = DB::table('donations')
+            ->join('users as u', 'u.id', 'donations.user_id')->where('u.type_id', 2)
+            ->select('user_id', DB::raw('COUNT(*) as donation_count'))
+            ->groupBy('user_id')
+            ->orderBy('donation_count', 'desc')
+            ->take(3)
+            ->get();
+
+        foreach ($top as &$item) {
+            $item->user = User::where('id', $item->user_id)->get();
+        }
+
+        return response([
+            'status' => true,
+            'ads' => $ads,
+            'events' => $events,
+            'top_users' => $top,
+        ], 200);
+    }
+
+    public function addZaka(Request $request)
+    {
+        $validatedData = $request->validate([
+            'amount' => 'required',
+            'date' => 'required',
+            'user_id' => 'required',
+        ]);
+
+        if (!(User::where('id', $request->user_id)->exists())) {
+            return response()->json([
+                'status' => false,
+                'message' => "Wrong user ID"
+            ], 200);
+        }
+
+        zaka::create($validatedData);
+
+        $data = zaka::join('users as u', 'u.id', 'zakas.user_id')
+            ->leftjoin('families as f', 'f.id', 'u.family_id')
+            ->get([
+                'zakas.id',
+                'amount',
+                'date',
+                'user_id',
+                'u.name',
+                'family_id',
+                'f.name as family',
+                'email',
+                'phone_no',
+                'u.img_url',
+                'created_at',
+                'updated_at'
+            ]);
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'zakas' => $data,
+        ], 200);
+    }
+
+    public function deleteZaka($id)
+    {
+        if (!(zaka::where('id', $id)->exists())) {
+            return response([
+                'status' => false,
+                'message' => 'not found, wrong id'
+            ], 200);
+        }
+
+        zaka::where('id', $id)->delete();
+        $data = zaka::join('users as u', 'u.id', 'zakas.user_id')
+            ->leftjoin('families as f', 'f.id', 'u.family_id')
+            ->get([
+                'zakas.id',
+                'amount',
+                'date',
+                'user_id',
+                'u.name',
+                'family_id',
+                'f.name as family',
+                'email',
+                'phone_no',
+                'u.img_url',
+                'created_at',
+                'updated_at'
+            ]);
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'zakas' => $data,
+        ], 200);
+    }
+
+    public function showZaka()
+    {
+        $data = zaka::join('users as u', 'u.id', 'zakas.user_id')
+            ->leftjoin('families as f', 'f.id', 'u.family_id')
+            ->get([
+                'zakas.id',
+                'amount',
+                'date',
+                'user_id',
+                'u.name',
+                'family_id',
+                'f.name as family',
+                'email',
+                'phone_no',
+                'u.img_url',
+                'created_at',
+                'updated_at'
+            ]);
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'zakas' => $data,
+        ], 200);
+    }
+
+    public function showUsersAndFamilies()
+    {
+        $users = User::leftjoin('families as f', 'f.id', 'family_id')
+            ->join('users_types as t', 't.id', 'type_id')
+            ->get([
+                'users.id',
+                'users.name',
+                'family_id',
+                'f.name as family',
+                'f.img_url as family_img_url',
+                'type_id',
+                't.name as type',
+                'email',
+                'phone_no',
+                'users.img_url',
+                'created_at',
+                'updated_at'
+            ]);
+
+        $data = family::get();
+        return response([
+            'status' => true,
+            'users' => $users,
+            'families' => $data,
+        ], 200);
+    }
+
+    public function getReport(Request $request)
+    {
+        $request->validate([
+            'date1' => 'date|required',
+            'date2' => 'date|required',
+        ]);
+
+        $date1 = Carbon::parse($request->input('date1'));
+        $date2 = Carbon::parse($request->input('date2'));
+
+        $users_count = DB::table('users')
+            ->whereDate('created_at', '>=', $date1)
+            ->whereDate('created_at', '<=', $date2)
+            ->count();
+
+        $users = DB::table('users as u')
+            ->whereDate('created_at', '>=', $date1)
+            ->whereDate('created_at', '<=', $date2)
+            ->leftjoin('families as f', 'f.id', 'family_id')
+            ->join('users_types as t', 't.id', 'type_id')
+            ->get([
+                'u.id',
+                'u.name',
+                'family_id',
+                'f.name as family',
+                'f.img_url as family_img_url',
+                'type_id',
+                't.name as type',
+                'email',
+                'phone_no',
+                'u.img_url',
+                'created_at',
+                'updated_at'
+            ]);
+
+        $total_zaka = DB::table('zakas')
+            ->whereDate('date', '>=', $date1)
+            ->whereDate('date', '<=', $date2)
+            ->sum('amount');
+
+        $total_expenses = DB::table('expenses')
+            ->whereDate('date', '>=', $date1)
+            ->whereDate('date', '<=', $date2)
+            ->sum('amount');
+
+        $pastDate2 = $date2->subYears(1);
+        $pastDate1 = $date1->subYears(1);
+
+        $total_donations = DB::table('donations')
+            ->whereDate('date', '>=', $pastDate1)
+            ->whereDate('date', '<=', $pastDate2)
+            ->sum('amount');
+
+        return response()->json([
+            'status' => true,
+            'users_count' => $users_count,
+            'users' => $users,
+            'total_zaka' => $total_zaka,
+            'total_expenses' => $total_expenses,
+            'total_donations' => $total_donations,
+            'zaka_on_total_donations' => ($total_donations * 2.5 / 100)
+        ]);
     }
 }

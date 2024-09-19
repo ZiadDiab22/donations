@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post("login", [UserController::class, "login"]);
 Route::get("showDonationsTypes", [UserController::class, "showDonationsTypes"]);
+Route::get("home", [UserController::class, "home"]);
 
 Route::group(["middleware" => ["auth:api"]], function () {
     Route::post("register", [UserController::class, "register"])->middleware('checkAdminId');
@@ -35,6 +36,12 @@ Route::group(["middleware" => ["auth:api"]], function () {
     Route::get("showExpenses", [UserController::class, "showExpenses"])->middleware('checkAdminId');
     Route::get("deleteExpense/{id}", [UserController::class, "deleteExpense"])->middleware('checkAdminId');
     Route::post("editExpense", [UserController::class, "editExpense"])->middleware('checkAdminId');
+    ////
+    Route::post("addZaka", [UserController::class, "addZaka"])->middleware('checkAdminId');
+    Route::get("deleteZaka/{id}", [UserController::class, "deleteZaka"])->middleware('checkAdminId');
+    Route::get("showZaka", [UserController::class, "showZaka"])->middleware('checkAdminId');
+    Route::get("showUsersAndFamilies", [UserController::class, "showUsersAndFamilies"])->middleware('checkAdminId');
+    Route::post("getReport", [UserController::class, "getReport"])->middleware('checkAdminId');
 });
 
 Route::get('Ads/{filename}', function ($filename) {
@@ -55,6 +62,14 @@ Route::get('Families/{filename}', function ($filename) {
 
 Route::get('Events/{filename}', function ($filename) {
     $path = base_path('public_html/Events/' . $filename);
+    if (!File::exists($path)) {
+        abort(404, 'File not found');
+    }
+    return response()->file($path);;
+});
+
+Route::get('Users/{filename}', function ($filename) {
+    $path = base_path('public_html/Users/' . $filename);
     if (!File::exists($path)) {
         abort(404, 'File not found');
     }
