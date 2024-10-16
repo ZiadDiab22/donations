@@ -1019,4 +1019,72 @@ class UserController extends Controller
             'zaka_on_total_donations' => ($total_donations * 2.5 / 100)
         ]);
     }
+
+    public function getUserReport(Request $request)
+    {
+        $request->validate([
+            'date1' => 'date|required',
+            'date2' => 'date|required',
+        ]);
+
+        $date1 = Carbon::parse($request->input('date1'));
+        $date2 = Carbon::parse($request->input('date2'));
+
+        $user = DB::table('users as u')
+            ->where('u.id', auth()->user()->id)
+            ->leftjoin('families as f', 'f.id', 'family_id')
+            ->join('users_types as t', 't.id', 'type_id')
+            ->get([
+                'u.id',
+                'u.name',
+                'family_id',
+                'f.name as family',
+                'f.img_url as family_img_url',
+                'type_id',
+                't.name as type',
+                'email',
+                'phone_no',
+                'u.img_url',
+                'created_at',
+                'updated_at'
+            ]);
+
+        $total_zaka_now = DB::table('zakas')
+            ->where('user_id', auth()->user()->id)
+            ->whereDate('date', '>=', $date1)
+            ->whereDate('date', '<=', $date2)
+            ->sum('amount');
+
+        $total_donations_now = DB::table('donations')
+            ->where('user_id', auth()->user()->id)
+            ->whereDate('date', '>=', $date1)
+            ->whereDate('date', '<=', $date2)
+            ->sum('amount');
+
+        $pastDate2 = $date2->subYears(1);
+        $pastDate1 = $date1->subYears(1);
+
+        $total_zaka_old = DB::table('zakas')
+            ->where('user_id', auth()->user()->id)
+            ->whereDate('date', '>=', $pastDate1)
+            ->whereDate('date', '<=', $pastDate2)
+            ->sum('amount');
+
+        $total_donations_old = DB::table('donations')
+            ->where('user_id', auth()->user()->id)
+            ->whereDate('date', '>=', $pastDate1)
+            ->whereDate('date', '<=', $pastDate2)
+            ->sum('amount');
+
+
+        return response()->json([
+            'status' => true,
+            'user_data' => $user,
+            'total_donations_now' => $total_donations_now,
+            'total_donations_old' => $total_donations_old,
+            'total_zaka_now' => $total_zaka_now,
+            'total_zaka_old' => $total_zaka_old,
+            'zaka_on_total_donations' => ($total_donations_now * 2.5 / 100)
+        ]);
+    }
 }

@@ -28,7 +28,7 @@ Route::group(["middleware" => ["auth:api"]], function () {
     Route::post("addEvent", [UserController::class, "addEvent"])->middleware('checkAdminId');
     Route::get("deleteEvent/{id}", [UserController::class, "deleteEvent"])->middleware('checkAdminId');
     Route::get("showEvents", [UserController::class, "showEvents"]);
-    Route::post("editAcc", [UserController::class, "editAcc"])->middleware('checkAdminId');
+    Route::post("editAcc", [UserController::class, "editAcc"]);
     Route::post("editFamily", [UserController::class, "editFamily"])->middleware('checkAdminId');
     Route::post("editDonationType", [UserController::class, "editDonationType"])->middleware('checkAdminId');
     Route::post("editDonation", [UserController::class, "editDonation"])->middleware('checkAdminId');
@@ -36,12 +36,12 @@ Route::group(["middleware" => ["auth:api"]], function () {
     Route::get("showExpenses", [UserController::class, "showExpenses"])->middleware('checkAdminId');
     Route::get("deleteExpense/{id}", [UserController::class, "deleteExpense"])->middleware('checkAdminId');
     Route::post("editExpense", [UserController::class, "editExpense"])->middleware('checkAdminId');
-    ////
     Route::post("addZaka", [UserController::class, "addZaka"])->middleware('checkAdminId');
     Route::get("deleteZaka/{id}", [UserController::class, "deleteZaka"])->middleware('checkAdminId');
     Route::get("showZaka", [UserController::class, "showZaka"])->middleware('checkAdminId');
     Route::get("showUsersAndFamilies", [UserController::class, "showUsersAndFamilies"])->middleware('checkAdminId');
     Route::post("getReport", [UserController::class, "getReport"])->middleware('checkAdminId');
+    Route::post("getUserReport", [UserController::class, "getUserReport"]);
 });
 
 Route::get('Ads/{filename}', function ($filename) {
