@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('expenses', function (Blueprint $table) {
+        Schema::create('subscription_payments', function (Blueprint $table) {
             $table->increments('id');
-            $table->unsignedInteger('expense_type_id');
+            $table->unsignedInteger('subscription_id');
             $table->float('amount');
             $table->date('date');
-            $table->foreign('expense_type_id')->references('id')
-                ->on('expense_types')->onDelete('cascade');
+            $table->foreign('subscription_id')->references('id')
+                ->on('subscriptions')->onDelete('cascade');
         });
     }
 
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('expenses');
+        Schema::dropIfExists('subscription_payments');
     }
 };

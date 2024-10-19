@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 Route::post("login", [UserController::class, "login"]);
 Route::get("showDonationsTypes", [UserController::class, "showDonationsTypes"]);
 Route::get("home", [UserController::class, "home"]);
+Route::get("showHomeInfo", [UserController::class, "showHomeInfo"]);
 
 Route::group(["middleware" => ["auth:api"]], function () {
     Route::post("register", [UserController::class, "register"])->middleware('checkAdminId');
@@ -42,6 +43,19 @@ Route::group(["middleware" => ["auth:api"]], function () {
     Route::get("showUsersAndFamilies", [UserController::class, "showUsersAndFamilies"])->middleware('checkAdminId');
     Route::post("getReport", [UserController::class, "getReport"])->middleware('checkAdminId');
     Route::post("getUserReport", [UserController::class, "getUserReport"]);
+    Route::post("editHome", [UserController::class, "editHome"])->middleware('checkAdminId');
+    Route::post("addExpenseType", [UserController::class, "addExpenseType"])->middleware('checkAdminId');
+    Route::get("showExpenseTypes", [UserController::class, "showExpenseTypes"])->middleware('checkAdminId');
+    Route::get("deleteExpenseType/{id}", [UserController::class, "deleteExpenseType"])->middleware('checkAdminId');
+    Route::post("editExpenseType", [UserController::class, "editExpenseType"])->middleware('checkAdminId');
+    Route::get("showSubscriptionData", [UserController::class, "showSubscriptionData"])->middleware('checkAdminId');
+    Route::get("showUserSubs", [UserController::class, "showUserSubs"]);
+    Route::get("deleteSubscription/{id}", [UserController::class, "deleteSubscription"])->middleware('checkAdminId');
+    Route::post("addSubscription", [UserController::class, "addSubscription"])->middleware('checkAdminId');
+    Route::post("addPayment", [UserController::class, "addPayment"])->middleware('checkAdminId');
+    Route::get("deletePayment/{id}", [UserController::class, "deletePayment"])->middleware('checkAdminId');
+    Route::post("editPayment", [UserController::class, "editPayment"])->middleware('checkAdminId');
+    Route::post("editSubscription", [UserController::class, "editSubscription"])->middleware('checkAdminId');
 });
 
 Route::get('Ads/{filename}', function ($filename) {
@@ -70,6 +84,14 @@ Route::get('Events/{filename}', function ($filename) {
 
 Route::get('Users/{filename}', function ($filename) {
     $path = base_path('public_html/Users/' . $filename);
+    if (!File::exists($path)) {
+        abort(404, 'File not found');
+    }
+    return response()->file($path);;
+});
+
+Route::get('Home/{filename}', function ($filename) {
+    $path = base_path('public_html/Home/' . $filename);
     if (!File::exists($path)) {
         abort(404, 'File not found');
     }

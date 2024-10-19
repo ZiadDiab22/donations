@@ -11,13 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('expenses', function (Blueprint $table) {
+        Schema::create('home_infos', function (Blueprint $table) {
             $table->increments('id');
-            $table->unsignedInteger('expense_type_id');
-            $table->float('amount');
-            $table->date('date');
-            $table->foreign('expense_type_id')->references('id')
-                ->on('expense_types')->onDelete('cascade');
+            $table->string('title');
+            $table->string('text');
+            $table->string('img_url');
         });
     }
 
@@ -26,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('expenses');
+        Schema::dropIfExists('home_infos');
     }
 };

@@ -8,7 +8,11 @@ use App\Models\donation;
 use App\Models\donations_type;
 use App\Models\family;
 use App\Models\event;
+use App\Models\expense_type;
 use App\Models\expenses;
+use App\Models\home_info;
+use App\Models\subscription;
+use App\Models\subscription_payment;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\users_type;
@@ -680,12 +684,12 @@ class UserController extends Controller
     public function addExpense(Request $request)
     {
         $validatedData = $request->validate([
-            'donation_type_id' => 'required',
+            'expense_type_id' => 'required',
             'amount' => 'required',
             'date' => 'date|required',
         ]);
 
-        if (!(donations_type::where('id', $request->donation_type_id)->exists())) {
+        if (!(expense_type::where('id', $request->expense_type_id)->exists())) {
             return response([
                 'status' => false,
                 'message' => 'type not found, wrong id'
@@ -693,10 +697,11 @@ class UserController extends Controller
         }
 
         expenses::create($validatedData);
-        $data = expenses::join('donations_types as t', 't.id', 'expenses.donation_type_id')
+
+        $data = expenses::join('expense_types as t', 't.id', 'expenses.expense_type_id')
             ->get([
                 'expenses.id',
-                'donation_type_id',
+                'expense_type_id',
                 't.name as type',
                 'amount',
                 'date'
@@ -711,10 +716,10 @@ class UserController extends Controller
 
     public function showExpenses()
     {
-        $data = expenses::join('donations_types as t', 't.id', 'expenses.donation_type_id')
+        $data = expenses::join('expense_types as t', 't.id', 'expenses.expense_type_id')
             ->get([
                 'expenses.id',
-                'donation_type_id',
+                'expense_type_id',
                 't.name as type',
                 'amount',
                 'date'
@@ -767,8 +772,8 @@ class UserController extends Controller
             ], 200);
         }
 
-        if ($request->has('donation_type_id')) {
-            if (!(donations_type::where('id', $request->donation_type_id)->exists())) {
+        if ($request->has('expense_type_id')) {
+            if (!(expense_type::where('id', $request->expense_type_id)->exists())) {
                 return response()->json([
                     'status' => false,
                     'message' => "Wrong type ID"
@@ -781,17 +786,17 @@ class UserController extends Controller
         $input = $request->all();
 
         foreach ($input as $key => $value) {
-            if (in_array($key, ['donation_type_id', 'amount', 'date'])) {
+            if (in_array($key, ['expense_type_id', 'amount', 'date'])) {
                 $expense->$key = $value;
             }
         }
 
         $expense->save();
 
-        $data = expenses::join('donations_types as t', 't.id', 'expenses.donation_type_id')
+        $data = expenses::join('expense_types as t', 't.id', 'expenses.expense_type_id')
             ->get([
                 'expenses.id',
-                'donation_type_id',
+                'expense_type_id',
                 't.name as type',
                 'amount',
                 'date'
@@ -1086,5 +1091,525 @@ class UserController extends Controller
             'total_zaka_old' => $total_zaka_old,
             'zaka_on_total_donations' => ($total_donations_now * 2.5 / 100)
         ]);
+    }
+
+    public function editHome(Request $request)
+    {
+        $request->validate([
+            'id' => 'required'
+        ]);
+
+        if (!(home_info::where('id', $request->id)->exists())) {
+            return response()->json([
+                'status' => false,
+                'message' => "Wrong ID , not exist"
+            ], 200);
+        }
+
+        $info = home_info::find($request->id);
+
+        $input = $request->all();
+
+        foreach ($input as $key => $value) {
+            if (in_array($key, ['text', 'title'])) {
+                $info->$key = $value;
+            }
+        }
+
+        if ($request->has('img_url')) {
+            $image1 = Str::random(32) . "." . $request->img_url->getClientOriginalExtension();
+            Storage::disk('public_htmlHome')->put($image1, file_get_contents($request->img_url));
+            $image1 = asset('api/Home/' . $image1);
+            $info->img_url = $image1;
+        }
+
+        $info->save();
+
+        $info = home_info::get();
+
+        return response([
+            'status' => true,
+            'info' => $info,
+        ], 200);
+    }
+
+    public function showHomeInfo(Request $request)
+    {
+        $info = home_info::get();
+
+        return response([
+            'status' => true,
+            'info' => $info,
+        ], 200);
+    }
+
+    public function addExpenseType(Request $request)
+    {
+        $validatedData = $request->validate([
+            'name' => 'required',
+        ]);
+
+        expense_type::create($validatedData);
+        $types = expense_type::get();
+
+        return response([
+            'status' => true,
+            'message' => 'done Successfully',
+            'types' => $types
+        ]);
+    }
+
+    public function editExpenseType(Request $request)
+    {
+        $request->validate([
+            'id' => 'required',
+            'name' => 'required',
+        ]);
+
+        if (!(expense_type::where('id', $request->id)->exists())) {
+            return response()->json([
+                'status' => false,
+                'message' => "Wrong ID , type not exist"
+            ], 200);
+        }
+
+        $type = expense_type::find($request->id);
+        $type->name = $request->name;
+        $type->save();
+
+        $types = expense_type::get();
+
+        return response([
+            'status' => true,
+            'types' => $types,
+        ], 200);
+    }
+
+    public function deleteExpenseType($id)
+    {
+        if (!(expense_type::where('id', $id)->exists())) {
+            return response([
+                'status' => false,
+                'message' => 'not found, wrong id'
+            ], 200);
+        }
+
+        expense_type::where('id', $id)->delete();
+        $data = expense_type::get();
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'types' => $data,
+        ], 200);
+    }
+
+    public function showExpenseTypes()
+    {
+        $types = expense_type::get();
+
+        return response([
+            'status' => true,
+            'types' => $types
+        ]);
+    }
+
+    public function showSubscriptionData()
+    {
+        $subs = subscription::join('users as u', 'user_id', 'u.id')
+            ->leftjoin('families as f', 'family_id', 'f.id')->get([
+                'subscriptions.id',
+                'user_id',
+                'u.name',
+                'u.img_url',
+                'u.phone_no',
+                'u.email',
+                'family_id',
+                'f.name as family',
+                'all_amount',
+                'paid_amount',
+                'remaining_amount',
+                'start_date',
+                'end_date',
+                'duration'
+            ]);
+
+        foreach ($subs as $s) {
+            $s['payments'] = subscription_payment::where('subscription_id', $s['id'])->get();
+        }
+
+        return response([
+            'status' => true,
+            'subscriptions' => $subs
+        ]);
+    }
+
+    public function deleteSubscription($id)
+    {
+        if (!(subscription::where('id', $id)->exists())) {
+            return response([
+                'status' => false,
+                'message' => 'not found, wrong id'
+            ], 200);
+        }
+
+        subscription::where('id', $id)->delete();
+        $subs = subscription::join('users as u', 'user_id', 'u.id')
+            ->leftjoin('families as f', 'family_id', 'f.id')->get([
+                'subscriptions.id',
+                'user_id',
+                'u.name',
+                'u.img_url',
+                'u.phone_no',
+                'u.email',
+                'family_id',
+                'f.name as family',
+                'all_amount',
+                'paid_amount',
+                'remaining_amount',
+                'start_date',
+                'end_date',
+                'duration'
+            ]);
+
+        foreach ($subs as $s) {
+            $s['payments'] = subscription_payment::where('subscription_id', $s['id'])->get();
+        }
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'types' => $subs,
+        ], 200);
+    }
+
+    public function addSubscription(Request $request)
+    {
+        $validatedData = $request->validate([
+            'user_id' => 'required',
+            'all_amount' => 'required',
+            'start_date' => 'required|before:end_date',
+            'end_date' => 'required|after:start_date',
+        ]);
+
+        if (!(User::where('id', $request->user_id)->exists())) {
+            return response()->json([
+                'status' => false,
+                'message' => "wrong user id , not exist"
+            ], 200);
+        }
+        if ($request->all_amount <= 0) {
+            return response()->json([
+                'status' => false,
+                'message' => "wrong all_amount value"
+            ], 200);
+        }
+
+        $start_date = Carbon::parse($validatedData['start_date']);
+        $end_date = Carbon::parse($validatedData['end_date']);
+        $validatedData['duration'] = $start_date->diffInDays($end_date);
+        $validatedData['paid_amount'] = 0;
+        $validatedData['remaining_amount'] = $request->all_amount;
+
+        subscription::create($validatedData);
+        $subs = subscription::join('users as u', 'user_id', 'u.id')
+            ->leftjoin('families as f', 'family_id', 'f.id')->get([
+                'subscriptions.id',
+                'user_id',
+                'u.name',
+                'u.img_url',
+                'u.phone_no',
+                'u.email',
+                'family_id',
+                'f.name as family',
+                'all_amount',
+                'paid_amount',
+                'remaining_amount',
+                'start_date',
+                'end_date',
+                'duration'
+            ]);
+
+        foreach ($subs as $s) {
+            $s['payments'] = subscription_payment::where('subscription_id', $s['id'])->get();
+        }
+
+        return response([
+            'status' => true,
+            'message' => 'done Successfully',
+            'types' => $subs,
+        ]);
+    }
+
+    public function showUserSubs()
+    {
+        $subs = subscription::where('subscriptions.user_id', auth()->user()->id)
+            ->join('users as u', 'user_id', 'u.id')
+            ->leftjoin('families as f', 'family_id', 'f.id')->get([
+                'subscriptions.id',
+                'user_id',
+                'u.name',
+                'u.img_url',
+                'u.phone_no',
+                'u.email',
+                'family_id',
+                'f.name as family',
+                'all_amount',
+                'paid_amount',
+                'remaining_amount',
+                'start_date',
+                'end_date',
+                'duration'
+            ]);
+
+        foreach ($subs as $s) {
+            $s['payments'] = subscription_payment::where('subscription_id', $s['id'])->get();
+        }
+
+        return response([
+            'status' => true,
+            'subscriptions' => $subs
+        ]);
+    }
+
+    public function addPayment(Request $request)
+    {
+        $validatedData = $request->validate([
+            'subscription_id' => 'required',
+            'amount' => 'required',
+            'date' => 'required',
+        ]);
+
+        if (!(subscription::where('id', $request->subscription_id)->exists())) {
+            return response()->json([
+                'status' => false,
+                'message' => "wrong subscription id , not exist"
+            ], 200);
+        }
+
+        $sub = subscription::find($request->subscription_id);
+
+        if ($request->amount > $sub->remaining_amount) {
+            return response()->json([
+                'status' => false,
+                'message' => "payment value cant be bigger than remaining amount of subscription"
+            ], 200);
+        }
+
+        if ($request->amount <= 0) {
+            return response()->json([
+                'status' => false,
+                'message' => "wrong amount value"
+            ], 200);
+        }
+
+        subscription_payment::create($validatedData);
+
+        $sub->paid_amount += $request->amount;
+        $sub->remaining_amount -= $request->amount;
+        $sub->save();
+
+        $subs = subscription::where('subscriptions.id', $request->subscription_id)
+            ->join('users as u', 'user_id', 'u.id')
+            ->leftjoin('families as f', 'family_id', 'f.id')
+            ->get([
+                'subscriptions.id',
+                'user_id',
+                'u.name',
+                'u.img_url',
+                'u.phone_no',
+                'u.email',
+                'family_id',
+                'f.name as family',
+                'all_amount',
+                'paid_amount',
+                'remaining_amount',
+                'start_date',
+                'end_date',
+                'duration'
+            ]);
+
+        foreach ($subs as $s) {
+            $s['payments'] = subscription_payment::where('subscription_id', $s['id'])->get();
+        }
+
+        return response([
+            'status' => true,
+            'message' => 'done Successfully',
+            'subscriptions' => $subs,
+        ]);
+    }
+
+    public function deletePayment($id)
+    {
+        if (!(subscription_payment::where('id', $id)->exists())) {
+            return response([
+                'status' => false,
+                'message' => 'not found, wrong id'
+            ], 200);
+        }
+
+        $payment = subscription_payment::find($id);
+        $sub = subscription::find($payment->subscription_id);
+        $sub->paid_amount -= $payment->amount;
+        $sub->remaining_amount += $payment->amount;
+        $sub->save();
+
+        subscription_payment::where('id', $id)->delete();
+
+        $subs = subscription::where('subscriptions.id', $payment->subscription_id)
+            ->join('users as u', 'user_id', 'u.id')
+            ->leftjoin('families as f', 'family_id', 'f.id')->get([
+                'subscriptions.id',
+                'user_id',
+                'u.name',
+                'u.img_url',
+                'u.phone_no',
+                'u.email',
+                'family_id',
+                'f.name as family',
+                'all_amount',
+                'paid_amount',
+                'remaining_amount',
+                'start_date',
+                'end_date',
+                'duration'
+            ]);
+
+        foreach ($subs as $s) {
+            $s['payments'] = subscription_payment::where('subscription_id', $s['id'])->get();
+        }
+
+        return response([
+            'status' => true,
+            'message' => "done successfully",
+            'subscriptions' => $subs,
+        ], 200);
+    }
+
+    public function editPayment(Request $request)
+    {
+        $request->validate([
+            'id' => 'required',
+        ]);
+
+        if (!(subscription_payment::where('id', $request->id)->exists())) {
+            return response()->json([
+                'status' => false,
+                'message' => "Wrong ID , not exist"
+            ], 200);
+        }
+
+        $payment = subscription_payment::find($request->id);
+
+        if ($request->has('subscription_id')) {
+            if (!(subscription::where('id', $request->subscription_id)->exists())) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "wrong subscription id , not exist"
+                ], 200);
+            }
+            $payment->subscription_id = $request->id;
+        }
+
+        $input = $request->all();
+
+        foreach ($input as $key => $value) {
+            if (in_array($key, ['subscription_id', 'date', 'amount'])) {
+                $payment->$key = $value;
+            }
+        }
+
+        $payment->save();
+
+        $subs = subscription::where('subscriptions.id', $payment->subscription_id)
+            ->join('users as u', 'user_id', 'u.id')
+            ->leftjoin('families as f', 'family_id', 'f.id')->get([
+                'subscriptions.id',
+                'user_id',
+                'u.name',
+                'u.img_url',
+                'u.phone_no',
+                'u.email',
+                'family_id',
+                'f.name as family',
+                'all_amount',
+                'paid_amount',
+                'remaining_amount',
+                'start_date',
+                'end_date',
+                'duration'
+            ]);
+
+        foreach ($subs as $s) {
+            $s['payments'] = subscription_payment::where('subscription_id', $s['id'])->get();
+        }
+
+        return response([
+            'status' => true,
+            'subscriptions' => $subs,
+        ], 200);
+    }
+
+    public function editSubscription(Request $request)
+    {
+        $request->validate([
+            'id' => 'required',
+        ]);
+
+        if (!(subscription::where('id', $request->id)->exists())) {
+            return response()->json([
+                'status' => false,
+                'message' => "Wrong ID , not exist"
+            ], 200);
+        }
+
+        $sub = subscription::find($request->id);
+
+        if ($request->has('user_id')) {
+            if (!(User::where('id', $request->user_id)->exists())) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "wrong user id , not exist"
+                ], 200);
+            }
+        }
+
+        $input = $request->all();
+
+        foreach ($input as $key => $value) {
+            if (in_array($key, ['all_amount', 'user_id', 'start_date', 'end_date'])) {
+                $sub->$key = $value;
+            }
+        }
+
+        $sub->save();
+
+        $subs = subscription::join('users as u', 'user_id', 'u.id')
+            ->leftjoin('families as f', 'family_id', 'f.id')->get([
+                'subscriptions.id',
+                'user_id',
+                'u.name',
+                'u.img_url',
+                'u.phone_no',
+                'u.email',
+                'family_id',
+                'f.name as family',
+                'all_amount',
+                'paid_amount',
+                'remaining_amount',
+                'start_date',
+                'end_date',
+                'duration'
+            ]);
+
+        foreach ($subs as $s) {
+            $s['payments'] = subscription_payment::where('subscription_id', $s['id'])->get();
+        }
+
+        return response([
+            'status' => true,
+            'subscriptions' => $subs,
+        ], 200);
     }
 }
