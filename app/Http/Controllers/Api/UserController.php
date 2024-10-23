@@ -825,11 +825,14 @@ class UserController extends Controller
             $item->user = User::where('id', $item->user_id)->get();
         }
 
+        $info = home_info::get();
+
         return response([
             'status' => true,
             'ads' => $ads,
             'events' => $events,
             'top_users' => $top,
+            'home_info' => $info,
         ], 200);
     }
 
@@ -1006,6 +1009,16 @@ class UserController extends Controller
             ->whereDate('date', '<=', $date2)
             ->sum('amount');
 
+        $subscription_count = DB::table('subscriptions')
+            ->whereDate('start_date', '>=', $date1)
+            ->whereDate('start_date', '<=', $date2)
+            ->count();
+
+        $total_subscriptions = DB::table('subscription_payments')
+            ->whereDate('date', '>=', $date1)
+            ->whereDate('date', '<=', $date2)
+            ->sum('amount');
+
         $pastDate2 = $date2->subYears(1);
         $pastDate1 = $date1->subYears(1);
 
@@ -1021,7 +1034,9 @@ class UserController extends Controller
             'total_zaka' => $total_zaka,
             'total_expenses' => $total_expenses,
             'total_donations' => $total_donations,
-            'zaka_on_total_donations' => ($total_donations * 2.5 / 100)
+            'zaka_on_total_donations' => ($total_donations * 2.5 / 100),
+            'subscription_count' => $subscription_count,
+            'total_subscriptions' => $total_subscriptions
         ]);
     }
 
@@ -1066,6 +1081,19 @@ class UserController extends Controller
             ->whereDate('date', '<=', $date2)
             ->sum('amount');
 
+        $subscription_count = DB::table('subscriptions')
+            ->where('user_id', auth()->user()->id)
+            ->whereDate('start_date', '>=', $date1)
+            ->whereDate('start_date', '<=', $date2)
+            ->count();
+
+        $total_subscriptions = DB::table('subscription_payments')
+            ->join('subscriptions as s', 'subscription_id', 's.id')
+            ->where('user_id', auth()->user()->id)
+            ->whereDate('date', '>=', $date1)
+            ->whereDate('date', '<=', $date2)
+            ->sum('amount');
+
         $pastDate2 = $date2->subYears(1);
         $pastDate1 = $date1->subYears(1);
 
@@ -1089,7 +1117,9 @@ class UserController extends Controller
             'total_donations_old' => $total_donations_old,
             'total_zaka_now' => $total_zaka_now,
             'total_zaka_old' => $total_zaka_old,
-            'zaka_on_total_donations' => ($total_donations_now * 2.5 / 100)
+            'zaka_on_total_donations' => ($total_donations_now * 2.5 / 100),
+            'subscription_count' => $subscription_count,
+            'total_subscriptions' => $total_subscriptions
         ]);
     }
 
@@ -1573,6 +1603,22 @@ class UserController extends Controller
                     'message' => "wrong user id , not exist"
                 ], 200);
             }
+        }
+
+        if ($request->has('all_amount')) {
+            if ($request->all_amount < 0)
+                return response()->json([
+                    'status' => false,
+                    'message' => "wrong all_amount value"
+                ], 200);
+
+            if ($request->all_amount < $sub->paid_amount)
+                return response()->json([
+                    'status' => false,
+                    'message' => "wrong all_amount value"
+                ], 200);
+
+            $sub->remaining_amount = $request->all_amount - $sub->paid_amount;
         }
 
         $input = $request->all();
