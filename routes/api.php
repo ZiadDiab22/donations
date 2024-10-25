@@ -10,6 +10,7 @@ Route::post("login", [UserController::class, "login"]);
 Route::get("showDonationsTypes", [UserController::class, "showDonationsTypes"]);
 Route::get("home", [UserController::class, "home"]);
 Route::get("showHomeInfo", [UserController::class, "showHomeInfo"]);
+Route::get('export', [UserController::class, 'export']);
 
 Route::group(["middleware" => ["auth:api"]], function () {
     Route::post("register", [UserController::class, "register"])->middleware('checkAdminId');
